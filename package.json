@@ -1,0 +1,23 @@
+{
+  "name": "backend_project_3c",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shnaidruk/backend_project_3c.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Shnaidruk/backend_project_3c/issues"
+  },
+  "homepage": "https://github.com/Shnaidruk/backend_project_3c#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
