@@ -2,8 +2,14 @@
 const express = require('express');
 const router = express.Router();
 
-router.get('/', (req, res) => {
-    res.send('Hello, World, it`s my BACK-END project!');
+router.get('/healthcheck', (req, res) => {
+    const currentDate = new Date();
+    const status = 'OK';
+
+    res.status(200).json({
+        date: currentDate.toISOString(),
+        status: status,
+    });
 });
 
 module.exports = router;
