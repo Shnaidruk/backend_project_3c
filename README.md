@@ -10,4 +10,4 @@ docker-compose up --build
 
 Посилання на деплой:
 
-https://backend-project-3c.onrender.com
+https://backend-project-3c.onrender.com/healthcheck
