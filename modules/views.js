@@ -8,13 +8,13 @@ const categories = [];
 const records = [];
 
 router.post('/user', (req,res) =>{
-    const {user_name} = req.body;
+    const { user_name } = req.body;
 
     if (!user_name){
         return res.status(400).json({error: 'Name is required'})
     }
 
-    const user_id = uuidv4();
+   const user_id = uuidv4();
 
     const user = {
         user_id,
@@ -29,10 +29,10 @@ router.get('/users', (req, res) => {
     res.status(200).json(users)
 });
 
-router.get('/user/<user_id>', (req, res) => {
-    const uId = req.params.id;
+router.get('/user/:user_id', (req, res) => {
+    const uId = req.params.user_id;
 
-    const curUser = users.find(user => user.id === uId);
+    const curUser = users.find(user => user.user_id === uId);
 
     if (!curUser){
         return res.status(404).json({error: 'No user with such user_id'})
@@ -40,10 +40,10 @@ router.get('/user/<user_id>', (req, res) => {
     res.status(200).json(curUser);
 });
 
-router.delete('/user/<user_id>', (req, res) => {
-    const uId = req.params.id;
+router.delete('/user/:user_id', (req, res) => {
+    const uId = req.params.user_id;
 
-    const curUser = users.find(user => user.id === uId);
+    const curUser = users.find(user => user.user_id === String(uId));
 
     if (!curUser){
         return res.status(404).json({error: 'No user with such user_id'})
@@ -58,7 +58,7 @@ router.delete('/user/<user_id>', (req, res) => {
 router.post('/category', (req, res) => {
     const {cat_name} = req.body;
 
-    if (!user_name){
+    if (!cat_name){
         return res.status(400).json({error: 'Name is required'})
     }
 
@@ -73,10 +73,14 @@ router.post('/category', (req, res) => {
     res.status(201).json(category);
 });
 
-router.get('/category/<cat_id>', (req, res) =>{
-    const cId = req.params.id;
+router.get('/categories', (req, res) => {
+    res.status(200).json(categories)
+});
 
-    const curCat = categories.find(category => category.id === cId);
+router.get('/category/:cat_id', (req, res) =>{
+    const cId = req.params.cat_id;
+
+    const curCat = categories.find(category => category.cat_id === cId);
 
     if (!curCat){
         return res.status(404).json({error: 'No category with such cat_id'})
@@ -84,10 +88,10 @@ router.get('/category/<cat_id>', (req, res) =>{
     res.status(200).json(curCat);
 });
 
-router.delete('/category/<cat_id>', (req, res) => {
-    const cId = req.params.id;
+router.delete('/category/:cat_id', (req, res) => {
+    const cId = req.params.cat_id;
 
-    const curCat = categories.find(category => category.id === cId);
+    const curCat = categories.find(category => category.cat_id === cId);
 
     if (!curCat){
         return res.status(404).json({error: 'No category with such cat_id'})
@@ -102,8 +106,8 @@ router.delete('/category/<cat_id>', (req, res) => {
 router.post('/record', (req, res) => {
     const {uId, cId, amount} = req.body;
 
-    const user = users.find(user => user.id === uId);
-    const category = categories.find(category => category.id === cId);
+    const user = users.find(user => user.user_id === uId);
+    const category = categories.find(category => category.cat_id === cId);
 
     if (!user || !category){
         return res.status(400).json({error: 'Invalid input'});
@@ -117,26 +121,30 @@ router.post('/record', (req, res) => {
     res.status(201).json(record);
 });
 
-router.get('/record', (req,res) => {
-    const{user_id, cat_id} = req.query;
+router.get('/records', (req, res) => {
+    res.status(200).json(records)
+});
 
-    if (!user_id && !category_id) {
+router.get('/record', (req,res) => {
+    const{uId, cId} = req.query;
+
+    if (!uId && !cId) {
         return res.status(400).json({ error: 'Please provide user_id and/or category_id' });
     }
 
     const filteredExpenses = records.filter(record =>
-        (!user_id || record.uId === user_id) &&
-        (!cat_id || record.cId === cat_id)
+        (!uId || record.user_id === String(uId)) &&
+        (!cId || record.cat_id === String(cId))
     );
 
     res.status(200).json(filteredExpenses);
 
 } );
 
-router.delete('/record/<rec_id>', (req,res) => {
-    const rId = req.params.id;
+router.delete('/record/:rec_id', (req,res) => {
+    const rId = req.params.rec_id;
 
-    const curRec = records.find(record => record.id === rId);
+    const curRec = records.find(record => record.rec_id === rId);
 
     if (!curRec){
         return res.status(404).json({error: 'No category with such rec_id'})

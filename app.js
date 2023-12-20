@@ -7,7 +7,9 @@ const viewsRouter = require('./modules/views');
 
 initializeApp();
 
+app.use(express.json());
 app.use('/', viewsRouter);
+
 
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
