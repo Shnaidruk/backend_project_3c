@@ -5,6 +5,7 @@ const router = express.Router();
 
 const {User} = require("../models");
 const userSchema = require("../schemas/user_schema");
+const categorySchema = require("../schemas/category_schema");
 
 const categories = [];
 const records = [];
@@ -57,23 +58,23 @@ router.delete('/user/:user_id', (req, res) => {
 });
 
 
-router.post('/category', (req, res) => {
-    const {cat_name} = req.body;
-
-    if (!cat_name){
-        return res.status(400).json({error: 'Name is required'})
-    }
-
-    const cat_id = uuidv4();
-
-    const category = {
-        cat_id,
+router.post('/category', async (req, res) => {
+    try {
+      const { cat_name } = req.body;
+  
+      const validationResult = userSchema.validate({ cat_name });
+  
+      
+      const category = await Category.create({
         cat_name,
-    };
-    categories.push(category);
-
-    res.status(201).json(category);
-});
+      });
+  
+      res.status(201).json(category);
+    } catch (error) {
+      console.error('Error creating category:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
 
 router.get('/categories', (req, res) => {
     res.status(200).json(categories)
