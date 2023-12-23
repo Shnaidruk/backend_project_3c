@@ -3,26 +3,28 @@ const express = require('express');
 const {v4: uuidv4} = require('uuid');
 const router = express.Router();
 
-const users = [];
+const {User} = require("../models");
+const userSchema = require("../schemas/user_schema");
+
 const categories = [];
 const records = [];
 
-router.post('/user', (req,res) =>{
+router.post('/user', async (req, res) => {
     const { user_name } = req.body;
 
-    if (!user_name){
-        return res.status(400).json({error: 'Name is required'})
+    const validationResult = userSchema.validate({ user_name });
+
+    if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
     }
 
-   const user_id = uuidv4();
-
-    const user = {
-        user_id,
-        user_name,
-    };
-    users.push(user);
-
-    res.status(201).json(user);
+    try {
+        const user = await User.create({ user_name });
+        res.status(201).json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 
 router.get('/users', (req, res) => {

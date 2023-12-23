@@ -8,6 +8,8 @@ cd backend_project_3c
 docker-compose up --build
 ```
 
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 Посилання на деплой:
 
 https://backend-project-3c.onrender.com/healthcheck

@@ -19,6 +19,11 @@
   "homepage": "https://github.com/Shnaidruk/backend_project_3c#readme",
   "dependencies": {
     "express": "^4.18.2",
+    "joi": "^17.11.0",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.35.2",
+    "sequelize-cli": "^6.6.2",
     "uuidv4": "^6.2.13"
   }
 }
