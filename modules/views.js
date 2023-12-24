@@ -1,12 +1,15 @@
 
 const express = require('express');
 const {v4: uuidv4} = require('uuid');
+const {sequelize} = require('sequelize');
 const router = express.Router();
 
-const User = require('../models/user');
-const Category = require('../models/category');
-const Record = require('../models/record');
-const Wallet = require('../models/wallet');
+
+
+const {User} = require('../models/index');
+const {Category} = require('../models/index');
+const {Record} = require('../models/index');
+const {Wallet} = require('../models/index');
 
 
 const { userPostSchema,  userGetSchema} = require('../schemas/user_schema');
@@ -179,80 +182,81 @@ router.delete('/category/:cat_id', async (req, res) => {
 
 
 router.post('/record', async (req, res) => {
-    const { uId, cId, amount } = req.body;
-  
-    const validationResult = recordSchema.validate({ uId, cId, amount });
-  
-        if (validationResult.error) {
-          return res.status(400).json({ error: validationResult.error.details[0].message });
-        }
+  const { user_id, cat_id, amount } = req.body;
 
-    try {
-      await sequelize.transaction(async (t) => {
-        
-        const user = await User.findByPk(uId);
-        const category = await Category.findByPk(cId);
-  
-        if (!user || !category) {
-            return res.status(400).json({ error: 'Invalid input' });
-          }
-  
-        const record = await Record.create({
-          user_id: uId,
-          cat_id: cId,
-          amount,
-        }, { transaction: t });
-  
-        const wallet = await Wallet.findOne({
-          where: { userId: uId },
-          transaction: t,
-        });
-  
-        wallet.balance -= amount;
-        await wallet.save({ transaction: t });
-  
-        res.status(201).json(record);
-      });
-    } catch (error) {
-      console.error('Error creating record:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+  const validationResult = recordSchema.validate({ user_id, cat_id, amount });
+
+  if (validationResult.error) {
+    return res.status(400).json({ error: validationResult.error.details[0].message });
+  }
+
+  try {
+    const user = await User.findByPk(user_id);
+    const category = await Category.findByPk(cat_id);
+
+    if (!user || !category) {
+      return res.status(400).json({ error: 'Invalid input' });
     }
-  });
+
+    const record = await Record.create({
+      user_id,
+      cat_id,
+      amount,
+    });
+
+    const wallet = await Wallet.findOne({
+      where: { user_id },
+    });
+
+    if (!wallet) {
+      return res.status(400).json({ error: 'User wallet not found' });
+    }
+
+    wallet.balance -= amount;
+    await wallet.save();
+
+    res.status(201).json(record);
+  } catch (error) {
+    console.error('Error creating record:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 router.get('/records', (req, res) => {
     res.status(200).json(records)
 });
 
 router.get('/record', async (req, res) => {
-    const { uId, cId } = req.query;
-  
-    try {
-      
-      const whereClause = {};
-      if (uId) {
-        whereClause.user_id = uId;
-      }
-      if (cId) {
-        whereClause.cat_id = cId;
-      }
-  
-      const filteredRecords = await Record.findAll({
-        where: whereClause,
-      });
-  
-      res.status(200).json(filteredRecords);
-    } catch (error) {
-      console.error('Error fetching records:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+  const { user_id, cat_id } = req.query;
+
+  try {
+
+    const whereClause = {};
+    if (user_id) { // Change from uId to user_id
+      whereClause.user_id = user_id; // Change from uId to user_id
     }
-  });
+    if (cat_id) { // Change from cId to cat_id
+      whereClause.cat_id = cat_id; // Change from cId to cat_id
+    }
+
+    const filteredRecords = await Record.findAll({
+      where: whereClause,
+    });
+
+    res.status(200).json(filteredRecords);
+  } catch (error) {
+    console.error('Error fetching records:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
   router.delete('/record/:rec_id', async (req, res) => {
-    const rId = req.params.rec_id;
+    const rec_id = req.params.rec_id;
   
     try {
       
-      const deletedRecord = await Record.findByPk(rId);
+      const deletedRecord = await Record.findByPk(rec_id);
   
       if (!deletedRecord) {
         return res.status(404).json({ error: 'No record with such rec_id' });
@@ -262,15 +266,15 @@ router.get('/record', async (req, res) => {
   
       res.status(200).json(deletedRecord);
     } catch (error) {
-      console.error(`Error deleting record with rec_id ${rId}:`, error);
+      console.error(`Error deleting record with rec_id ${rec}:`, error);
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
 
 router.post('/wallet', async (req, res) => {
-    const { userId } = req.body;
+    const { user_id } = req.body;
   
-    const validationResult = walletPostSchema.validate({ userId });
+    const validationResult = walletPostSchema.validate({ user_id });
   
       if (validationResult.error) {
         return res.status(400).json({ error: validationResult.error.details[0].message });
@@ -278,14 +282,14 @@ router.post('/wallet', async (req, res) => {
 
     try {
       
-      const user = await User.findByPk(userId);
+      const user = await User.findByPk(user_id);
   
       if (!user) {
         return res.status(400).json({ error: 'User not found' });
       }
   
       const existingWallet = await Wallet.findOne({
-        where: { userId },
+        where: { user_id },
       });
   
       if (existingWallet) {
@@ -293,7 +297,7 @@ router.post('/wallet', async (req, res) => {
       }
   
       const wallet = await Wallet.create({
-        userId,
+        userd,
         balance: 0,
       });
   
