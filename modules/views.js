@@ -68,7 +68,6 @@ router.delete('/user/:user_id', async (req, res) => {
     }
 
     try {
-      // Видалення користувача за його ідентифікатором з бази даних за допомогою Sequelize
       const deletedUser = await User.findByPk(uId);
   
       if (!deletedUser) {
@@ -123,7 +122,6 @@ router.get('/category/:cat_id', async (req, res) => {
     const cId = req.params.cat_id;
   
     try {
-      // Отримання категорії за її ідентифікатором з бази даних за допомогою Sequelize
       const curCat = await Category.findByPk(cId);
   
       if (!curCat) {
@@ -141,7 +139,6 @@ router.delete('/category/:cat_id', async (req, res) => {
     const cId = req.params.cat_id;
   
     try {
-      // Видалення категорії за її ідентифікатором з бази даних за допомогою Sequelize
       const deletedCategory = await Category.findByPk(cId);
   
       if (!deletedCategory) {
@@ -168,9 +165,8 @@ router.post('/record', async (req, res) => {
         }
 
     try {
-      // Починаємо транзакцію Sequelize
       await sequelize.transaction(async (t) => {
-        // Перевірка, чи існують користувач та категорія за допомогою Sequelize
+        
         const user = await User.findByPk(uId);
         const category = await Category.findByPk(cId);
   
@@ -178,20 +174,17 @@ router.post('/record', async (req, res) => {
             return res.status(400).json({ error: 'Invalid input' });
           }
   
-        // Створення запису в таблиці Record
         const record = await Record.create({
           user_id: uId,
           cat_id: cId,
           amount,
         }, { transaction: t });
   
-        // Отримуємо рахунок користувача
         const wallet = await Wallet.findOne({
           where: { userId: uId },
           transaction: t,
         });
   
-        // Оновлюємо баланс рахунку користувача
         wallet.balance -= amount;
         await wallet.save({ transaction: t });
   
@@ -211,7 +204,7 @@ rrouter.get('/record', async (req, res) => {
     const { uId, cId } = req.query;
   
     try {
-      // Пошук записів за параметрами з бази даних за допомогою Sequelize
+      
       const whereClause = {};
       if (uId) {
         whereClause.user_id = uId;
@@ -235,7 +228,7 @@ rrouter.get('/record', async (req, res) => {
     const rId = req.params.rec_id;
   
     try {
-      // Видалення запису за ідентифікатором з бази даних за допомогою Sequelize
+      
       const deletedRecord = await Record.findByPk(rId);
   
       if (!deletedRecord) {
@@ -261,14 +254,13 @@ router.post('/wallet', async (req, res) => {
       }
 
     try {
-      // Перевірка, чи користувач існує
+      
       const user = await User.findByPk(userId);
   
       if (!user) {
         return res.status(400).json({ error: 'User not found' });
       }
   
-      // Перевірка, чи користувач вже має рахунок
       const existingWallet = await Wallet.findOne({
         where: { userId },
       });
@@ -277,7 +269,6 @@ router.post('/wallet', async (req, res) => {
         return res.status(400).json({ error: 'Wallet already exists for this user' });
       }
   
-      // Створення балансу користувача за замовчуванням
       const wallet = await Wallet.create({
         userId,
         balance: 0,
@@ -290,7 +281,26 @@ router.post('/wallet', async (req, res) => {
     }
   });
 
-
+  router.post('/add-to-balance/:user_id', async (req, res) => {
+    const { user_id } = req.params;
+    const { amount } = req.body;
+  
+    try {
+      let wallet = await Wallet.findOne({ where: { user_id } });
+  
+      if (!wallet) {
+        wallet = await Wallet.create({ user_id, balance: 0 });
+      }
+  
+      wallet.balance += amount;
+      await wallet.save();
+  
+      res.status(200).json({ user_id, new_balance: wallet.balance });
+    } catch (error) {
+      console.error(`Error adding amount to balance for user_id ${user_id}:`, error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
 
 router.get('/healthcheck', (req, res) => {
     const currentDate = new Date();
