@@ -1,3 +1,11 @@
+# BACK-End Labs
+
+## Variant
+
+15 mod 3 = 0
+
+0 - Облік доходів
+
 ## Setup project
 
 Щоб запустити проект локально, виконайте наступні кроки:
@@ -8,13 +16,18 @@ cd backend_project_3c
 docker-compose up --build
 ```
 
+Команди щоб налагодити локальний сервер:
+```bash
 sudo docker ps -a
-sudo docker exec -it 6bf0740f3eff psql -U postgres
+
+sudo docker exec -it backend_project_3c_postgres_1 psql -U postgres
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 sudo docker exec -it backend_project_3c_app_1 /bin/bash
-npx sequelize-cli db:migrate
 
+npx sequelize-cli db:migrate
+```
 
 
 

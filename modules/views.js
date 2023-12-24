@@ -223,8 +223,16 @@ router.post('/record', async (req, res) => {
 });
 
 
-router.get('/records', (req, res) => {
-    res.status(200).json(records)
+router.get('/records', async (req, res) => {
+    
+  try {
+    const records = await Record.findAll();
+
+    res.status(200).json(records);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 router.get('/record', async (req, res) => {
@@ -297,7 +305,7 @@ router.post('/wallet', async (req, res) => {
       }
   
       const wallet = await Wallet.create({
-        userd,
+        user_id,
         balance: 0,
       });
   
@@ -335,7 +343,19 @@ router.post('/wallet', async (req, res) => {
     }
   });
 
-  router.get('/balance/:user_id', async (req, res) => {
+  router.get('/wallets', async (req, res) => {
+    
+    try {
+      const wallets = await Wallet.findAll();
+  
+      res.status(200).json(wallets);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+  router.get('/wallet/:user_id', async (req, res) => {
     const { user_id } = req.params;
   
     const validationResult = walletGetSchema.validate({ user_id});
@@ -358,7 +378,7 @@ router.post('/wallet', async (req, res) => {
     }
   });
 
-  router.delete('/balance/:user_id', async (req, res) => {
+  router.delete('/wallet/:user_id', async (req, res) => {
     const { user_id } = req.params;
 
     const validationResult = walletGetSchema.validate({ user_id});
