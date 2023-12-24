@@ -1,7 +1,12 @@
 const Joi = require('joi');
 
-const categorySchema = Joi.object({
+const categoryPostSchema = Joi.object({
     cat_name: Joi.string().required(),
 });
 
-module.exports = categorySchema;
+const categoryGetSchema = Joi.object({
+    cat_Id: Joi.string().required(),
+});
+
+module.exports = categoryPostSchema;
+module.exports = categoryGetSchema;

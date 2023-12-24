@@ -88,7 +88,7 @@ router.post('/category', async (req, res) => {
     try {
       const { cat_name } = req.body;
   
-      const validationResult = categorySchema.validate({ cat_name });
+      const validationResult = categoryPostSchema.validate({ cat_name });
   
       if (validationResult.error) {
         return res.status(400).json({ error: validationResult.error.details[0].message });
@@ -120,6 +120,12 @@ router.get('/categories', async (req, res) => {
 
 router.get('/category/:cat_id', async (req, res) => {
     const cId = req.params.cat_id;
+
+    const validationResult = categoryGetSchema.validate({ cat_id });
+  
+      if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
+    }
   
     try {
       const curCat = await Category.findByPk(cId);
@@ -137,6 +143,12 @@ router.get('/category/:cat_id', async (req, res) => {
 
 router.delete('/category/:cat_id', async (req, res) => {
     const cId = req.params.cat_id;
+
+    const validationResult = categoryGetSchema.validate({ cat_id });
+  
+      if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
+    }
   
     try {
       const deletedCategory = await Category.findByPk(cId);
@@ -247,7 +259,7 @@ rrouter.get('/record', async (req, res) => {
 router.post('/wallet', async (req, res) => {
     const { userId } = req.body;
   
-    const validationResult = walletSchema.validate({ userId });
+    const validationResult = walletPostSchema.validate({ userId });
   
       if (validationResult.error) {
         return res.status(400).json({ error: validationResult.error.details[0].message });
@@ -281,10 +293,16 @@ router.post('/wallet', async (req, res) => {
     }
   });
 
-  router.post('/add-to-balance/:user_id', async (req, res) => {
+  router.post('/raise/:user_id', async (req, res) => {
     const { user_id } = req.params;
     const { amount } = req.body;
   
+    const validationResult = walletRaiseSchema.validate({ user_id, amount });
+  
+      if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
+      }
+
     try {
       let wallet = await Wallet.findOne({ where: { user_id } });
   
@@ -298,6 +316,54 @@ router.post('/wallet', async (req, res) => {
       res.status(200).json({ user_id, new_balance: wallet.balance });
     } catch (error) {
       console.error(`Error adding amount to balance for user_id ${user_id}:`, error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+
+  router.get('/balance/:user_id', async (req, res) => {
+    const { user_id } = req.params;
+  
+    const validationResult = walletGetSchema.validate({ user_id});
+  
+      if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
+      }
+
+    try {
+      const wallet = await Wallet.findOne({ where: { user_id } });
+  
+      if (!wallet) {
+        return res.status(404).json({ error: 'No wallet found for user_id' });
+      }
+  
+      res.status(200).json({ user_id, balance: wallet.balance });
+    } catch (error) {
+      console.error(`Error fetching balance for user_id ${user_id}:`, error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+
+  router.delete('/balance/:user_id', async (req, res) => {
+    const { user_id } = req.params;
+
+    const validationResult = walletGetSchema.validate({ user_id});
+  
+      if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
+      }
+  
+    try {
+      const deletedWallet = await Wallet.findOne({ where: { user_id } });
+  
+      if (!deletedWallet) {
+        return res.status(404).json({ error: 'No wallet found for user_id' });
+      }
+  
+      await deletedWallet.destroy();
+  
+      res.status(200).json({ user_id, message: 'Wallet deleted successfully' });
+    } catch (error) {
+      console.error(`Error deleting wallet for user_id ${user_id}:`, error);
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
