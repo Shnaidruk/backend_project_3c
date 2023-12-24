@@ -119,29 +119,42 @@ router.get('/categories', async (req, res) => {
     }
 });
 
-router.get('/category/:cat_id', (req, res) =>{
+router.get('/category/:cat_id', async (req, res) => {
     const cId = req.params.cat_id;
-
-    const curCat = categories.find(category => category.cat_id === cId);
-
-    if (!curCat){
-        return res.status(404).json({error: 'No category with such cat_id'})
+  
+    try {
+      // Отримання категорії за її ідентифікатором з бази даних за допомогою Sequelize
+      const curCat = await Category.findByPk(cId);
+  
+      if (!curCat) {
+        return res.status(404).json({ error: 'No category with such cat_id' });
+      }
+  
+      res.status(200).json(curCat);
+    } catch (error) {
+      console.error(`Error fetching category with cat_id ${cId}:`, error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-    res.status(200).json(curCat);
-});
+  });
 
-router.delete('/category/:cat_id', (req, res) => {
+router.delete('/category/:cat_id', async (req, res) => {
     const cId = req.params.cat_id;
-
-    const curCat = categories.find(category => category.cat_id === cId);
-
-    if (!curCat){
-        return res.status(404).json({error: 'No category with such cat_id'})
+  
+    try {
+      // Видалення категорії за її ідентифікатором з бази даних за допомогою Sequelize
+      const deletedCategory = await Category.findByPk(cId);
+  
+      if (!deletedCategory) {
+        return res.status(404).json({ error: 'No category with such cat_id' });
+      }
+  
+      await deletedCategory.destroy();
+  
+      res.status(200).json(deletedCategory);
+    } catch (error) {
+      console.error(`Error deleting category with cat_id ${cId}:`, error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-
-    const delC = categories.splice(curCat, 1)[0];
-
-    res.status(200).json(delC);
 });
 
 
