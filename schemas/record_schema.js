@@ -6,4 +6,4 @@ const recordSchema = Joi.object({
     amount: Joi.string().required(),
 });
 
-module.exports = categorySchema;
+module.exports = recordSchema;

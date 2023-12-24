@@ -6,9 +6,11 @@ const router = express.Router();
 const {User} = require("../models");
 const userSchema = require("../schemas/user_schema");
 const categorySchema = require("../schemas/category_schema");
+const recordSchema = require("../schemas/record_schema");
 
-const categories = [];
-const records = [];
+
+
+
 
 router.post('/user', async (req, res) => {
     const { user_name } = req.body;
@@ -62,8 +64,12 @@ router.post('/category', async (req, res) => {
     try {
       const { cat_name } = req.body;
   
-      const validationResult = userSchema.validate({ cat_name });
+      const validationResult = categorySchema.validate({ cat_name });
   
+      if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
+    }
+
       
       const category = await Category.create({
         cat_name,
@@ -106,23 +112,33 @@ router.delete('/category/:cat_id', (req, res) => {
 });
 
 
-router.post('/record', (req, res) => {
-    const {uId, cId, amount} = req.body;
-
-    const user = users.find(user => user.user_id === uId);
-    const category = categories.find(category => category.cat_id === cId);
-
-    if (!user || !category){
-        return res.status(400).json({error: 'Invalid input'});
+router.post('/record', async (req, res) => {
+    try {
+      const { uId, cId, amount } = req.body;
+  
+      // Перевірка, чи існують користувач та категорія за допомогою Sequelize
+      const user = await User.findByPk(uId);
+      const category = await Category.findByPk(cId);
+  
+      const validationResult = recordSchema.validate({ user, category, amount });
+  
+      if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
     }
-
-    const rec_id = uuidv4();
-    const record = {rec_id, uId, cId, amount, timestamp: Date.now().toString()};
-
-    records.push(record);
-
-    res.status(201).json(record);
-});
+    
+      // Створення запису в базі даних за допомогою Sequelize
+      const record = await Record.create({
+        user_id: uId,
+        cat_id: cId,
+        amount,
+      });
+  
+      res.status(201).json(record);
+    } catch (error) {
+      console.error('Error creating record:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
 
 router.get('/records', (req, res) => {
     res.status(200).json(records)
