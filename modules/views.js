@@ -20,6 +20,22 @@ const recordSchema = require('../schemas/record_schema');
 const { walletPostSchema, walletGetSchema, walletRaiseSchema } = require('../schemas/wallet_schema');
 
 
+
+
+router.post('/signup', async (req, res) => {
+  const { user_name, password } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({ user_name, password: hashedPassword });
+    res.status(201).json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 router.post('/login', async (req, res) => {
   const { user_name, password } = req.body;
 
@@ -43,20 +59,15 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/signup', async (req, res) => {
-  const { user_name, password } = req.body;
 
+
+const decodeToken = (token) => {
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await User.create({ user_name, password: hashedPassword });
-    res.status(201).json(user);
+    return jwt.verify(token, 'jwt_key');
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    return null;
   }
-});
-
+};
 
 
 
@@ -96,13 +107,6 @@ router.get('/user/:user_id', async (req, res) => {
     }
 });
 
-const decodeToken = (token) => {
-  try {
-    return jwt.verify(token, 'jwt_key');
-  } catch (error) {
-    return null;
-  }
-};
 
 router.delete('/user', async (req, res) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
