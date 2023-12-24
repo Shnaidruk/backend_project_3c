@@ -2,6 +2,8 @@
 const express = require('express');
 const {v4: uuidv4} = require('uuid');
 const {sequelize} = require('sequelize');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 
 
@@ -18,23 +20,45 @@ const recordSchema = require('../schemas/record_schema');
 const { walletPostSchema, walletGetSchema, walletRaiseSchema } = require('../schemas/wallet_schema');
 
 
-router.post('/user', async (req, res) => {
-    const { user_name } = req.body;
+router.post('/login', async (req, res) => {
+  const { user_name, password } = req.body;
 
-    const validationResult = userPostSchema.validate({ user_name });
+  try {
 
-    if (validationResult.error) {
-        return res.status(400).json({ error: validationResult.error.details[0].message });
+    const user = await User.findOne({ where: { user_name } });
+
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    try {
-        const user = await User.create({ user_name });
-        res.status(201).json(user);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    
+    const token = jwt.sign({ user_id: user.id }, 'jwt_key', { expiresIn: '1h' });
+
+
+    res.json({ token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
+
+router.post('/signup', async (req, res) => {
+  const { user_name, password } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({ user_name, password: hashedPassword });
+    res.status(201).json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
 
 router.get('/users', async (req, res) => {
     try {
@@ -72,30 +96,45 @@ router.get('/user/:user_id', async (req, res) => {
     }
 });
 
-router.delete('/user/:user_id', async (req, res) => {
-    const uId = req.params.user_id;
-  
-    const validationResult = userGetSchema.validate({ uId });
+const decodeToken = (token) => {
+  try {
+    return jwt.verify(token, 'jwt_key');
+  } catch (error) {
+    return null;
+  }
+};
 
-    if (validationResult.error) {
-        return res.status(400).json({ error: validationResult.error.details[0].message });
+router.delete('/user', async (req, res) => {
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+
+  const decodedToken = decodeToken(token);
+
+  if (!decodedToken || !decodedToken.user_id) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const user_id = decodedToken.user_id;
+
+  try {
+    const deletedUser = await User.findByPk(user_id);
+
+    if (!deletedUser) {
+      return res.status(404).json({ error: 'No user with such user_id' });
     }
 
-    try {
-      const deletedUser = await User.findByPk(uId);
-  
-      if (!deletedUser) {
-        return res.status(404).json({ error: 'No user with such user_id' });
-      }
-  
-      await deletedUser.destroy();
-  
-      res.status(200).json(deletedUser);
-    } catch (error) {
-      console.error(`Error deleting user with user_id ${uId}:`, error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  });
+    await deletedUser.destroy();
+
+    res.status(200).json(deletedUser);
+  } catch (error) {
+    console.error(`Error deleting user with user_id from token:`, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 
 router.post('/category', async (req, res) => {
