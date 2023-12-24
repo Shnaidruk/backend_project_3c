@@ -207,35 +207,49 @@ router.get('/records', (req, res) => {
     res.status(200).json(records)
 });
 
-router.get('/record', (req,res) => {
-    const{uId, cId} = req.query;
-
-    if (!uId && !cId) {
-        return res.status(400).json({ error: 'Please provide user_id and/or category_id' });
+rrouter.get('/record', async (req, res) => {
+    const { uId, cId } = req.query;
+  
+    try {
+      // Пошук записів за параметрами з бази даних за допомогою Sequelize
+      const whereClause = {};
+      if (uId) {
+        whereClause.user_id = uId;
+      }
+      if (cId) {
+        whereClause.cat_id = cId;
+      }
+  
+      const filteredRecords = await Record.findAll({
+        where: whereClause,
+      });
+  
+      res.status(200).json(filteredRecords);
+    } catch (error) {
+      console.error('Error fetching records:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
+  });
 
-    const filteredExpenses = records.filter(record =>
-        (!uId || record.user_id === String(uId)) &&
-        (!cId || record.cat_id === String(cId))
-    );
-
-    res.status(200).json(filteredExpenses);
-
-} );
-
-router.delete('/record/:rec_id', (req,res) => {
+  router.delete('/record/:rec_id', async (req, res) => {
     const rId = req.params.rec_id;
-
-    const curRec = records.find(record => record.rec_id === rId);
-
-    if (!curRec){
-        return res.status(404).json({error: 'No category with such rec_id'})
+  
+    try {
+      // Видалення запису за ідентифікатором з бази даних за допомогою Sequelize
+      const deletedRecord = await Record.findByPk(rId);
+  
+      if (!deletedRecord) {
+        return res.status(404).json({ error: 'No record with such rec_id' });
+      }
+  
+      await deletedRecord.destroy();
+  
+      res.status(200).json(deletedRecord);
+    } catch (error) {
+      console.error(`Error deleting record with rec_id ${rId}:`, error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-
-    const delR = records.splice(curRec, 1)[0];
-
-    res.status(200).json(delR);
-});
+  });
 
 router.post('/wallet', async (req, res) => {
     const { userId } = req.body;
