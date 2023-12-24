@@ -8,5 +8,4 @@ const categoryGetSchema = Joi.object({
     cat_Id: Joi.string().required(),
 });
 
-module.exports = categoryPostSchema;
-module.exports = categoryGetSchema;
+module.exports = {categoryPostSchema, categoryGetSchema};

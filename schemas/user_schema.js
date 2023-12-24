@@ -8,5 +8,4 @@ const userGetSchema = Joi.object({
     user_id: Joi.string().required(),
 });
 
-module.exports = userPostSchema;
-module.exports = userGetSchema;
+module.exports = {userPostSchema, userGetSchema};

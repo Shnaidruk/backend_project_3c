@@ -3,6 +3,17 @@ const express = require('express');
 const {v4: uuidv4} = require('uuid');
 const router = express.Router();
 
+const User = require('../models/user');
+const Category = require('../models/category');
+const Record = require('../models/record');
+const Wallet = require('../models/wallet');
+
+
+const { userPostSchema,  userGetSchema} = require('../schemas/user_schema');
+const { categoryPostSchema, categoryGetSchema } = require('../schemas/category_schema');
+const recordSchema = require('../schemas/record_schema');
+const { walletPostSchema, walletGetSchema, walletRaiseSchema } = require('../schemas/wallet_schema');
+
 
 router.post('/user', async (req, res) => {
     const { user_name } = req.body;
@@ -212,7 +223,7 @@ router.get('/records', (req, res) => {
     res.status(200).json(records)
 });
 
-rrouter.get('/record', async (req, res) => {
+router.get('/record', async (req, res) => {
     const { uId, cId } = req.query;
   
     try {

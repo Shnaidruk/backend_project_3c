@@ -10,10 +10,8 @@ const walletGetSchema = Joi.object({
 
 const walletRaiseSchema = Joi.object({
     user_id: Joi.string().required(),
-    amount: Joi.integer().required(),
+    amount: Joi.number().required(),
 
 });
 
-module.exports = walletPostSchema;
-module.exports = walletGetSchema;
-module.exports = walletRaiseSchema;
+module.exports = {walletPostSchema, walletGetSchema, walletRaiseSchema};
