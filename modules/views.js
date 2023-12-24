@@ -3,19 +3,11 @@ const express = require('express');
 const {v4: uuidv4} = require('uuid');
 const router = express.Router();
 
-const {User} = require("../models");
-const userSchema = require("../schemas/user_schema");
-const categorySchema = require("../schemas/category_schema");
-const recordSchema = require("../schemas/record_schema");
-
-
-
-
 
 router.post('/user', async (req, res) => {
     const { user_name } = req.body;
 
-    const validationResult = userSchema.validate({ user_name });
+    const validationResult = userPostSchema.validate({ user_name });
 
     if (validationResult.error) {
         return res.status(400).json({ error: validationResult.error.details[0].message });
@@ -30,34 +22,67 @@ router.post('/user', async (req, res) => {
     }
 });
 
-router.get('/users', (req, res) => {
-    res.status(200).json(users)
-});
+router.get('/users', async (req, res) => {
+    try {
+      const users = await User.findAll();
+  
+      res.status(200).json(users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
 
-router.get('/user/:user_id', (req, res) => {
+
+router.get('/user/:user_id', async (req, res) => {
     const uId = req.params.user_id;
 
-    const curUser = users.find(user => user.user_id === uId);
+    const validationResult = userGetSchema.validate({ uId });
 
-    if (!curUser){
-        return res.status(404).json({error: 'No user with such user_id'})
+        if (validationResult.error) {
+            return res.status(400).json({ error: validationResult.error.details[0].message });
+        }
+
+
+    try {
+        const curUser = await User.findByPk(uId);
+
+        if (!curUser) {
+            return res.status(404).json({ error: 'No user with such user_id' });
+        }
+
+        res.status(200).json(curUser);
+    } catch (error) {
+        console.error(`Error fetching user with user_id ${uId}:`, error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-    res.status(200).json(curUser);
 });
 
-router.delete('/user/:user_id', (req, res) => {
+router.delete('/user/:user_id', async (req, res) => {
     const uId = req.params.user_id;
+  
+    const validationResult = userGetSchema.validate({ uId });
 
-    const curUser = users.find(user => user.user_id === String(uId));
-
-    if (!curUser){
-        return res.status(404).json({error: 'No user with such user_id'})
+    if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
     }
 
-    const delU = users.splice(curUser, 1)[0];
-
-    res.status(200).json(delU);
-});
+    try {
+      // Видалення користувача за його ідентифікатором з бази даних за допомогою Sequelize
+      const deletedUser = await User.findByPk(uId);
+  
+      if (!deletedUser) {
+        return res.status(404).json({ error: 'No user with such user_id' });
+      }
+  
+      await deletedUser.destroy();
+  
+      res.status(200).json(deletedUser);
+    } catch (error) {
+      console.error(`Error deleting user with user_id ${uId}:`, error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
 
 
 router.post('/category', async (req, res) => {
@@ -80,10 +105,18 @@ router.post('/category', async (req, res) => {
       console.error('Error creating category:', error);
       res.status(500).json({ error: 'Internal Server Error' });
     }
-  });
+});
 
-router.get('/categories', (req, res) => {
-    res.status(200).json(categories)
+router.get('/categories', async (req, res) => {
+    
+    try {
+      const categories = await Category.findAll();
+  
+      res.status(200).json(categories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 
 router.get('/category/:cat_id', (req, res) =>{
@@ -113,27 +146,44 @@ router.delete('/category/:cat_id', (req, res) => {
 
 
 router.post('/record', async (req, res) => {
+    const { uId, cId, amount } = req.body;
+  
+    const validationResult = recordSchema.validate({ uId, cId, amount });
+  
+        if (validationResult.error) {
+          return res.status(400).json({ error: validationResult.error.details[0].message });
+        }
+
     try {
-      const { uId, cId, amount } = req.body;
+      // Починаємо транзакцію Sequelize
+      await sequelize.transaction(async (t) => {
+        // Перевірка, чи існують користувач та категорія за допомогою Sequelize
+        const user = await User.findByPk(uId);
+        const category = await Category.findByPk(cId);
   
-      // Перевірка, чи існують користувач та категорія за допомогою Sequelize
-      const user = await User.findByPk(uId);
-      const category = await Category.findByPk(cId);
+        if (!user || !category) {
+            return res.status(400).json({ error: 'Invalid input' });
+          }
   
-      const validationResult = recordSchema.validate({ user, category, amount });
+        // Створення запису в таблиці Record
+        const record = await Record.create({
+          user_id: uId,
+          cat_id: cId,
+          amount,
+        }, { transaction: t });
   
-      if (validationResult.error) {
-        return res.status(400).json({ error: validationResult.error.details[0].message });
-    }
-    
-      // Створення запису в базі даних за допомогою Sequelize
-      const record = await Record.create({
-        user_id: uId,
-        cat_id: cId,
-        amount,
+        // Отримуємо рахунок користувача
+        const wallet = await Wallet.findOne({
+          where: { userId: uId },
+          transaction: t,
+        });
+  
+        // Оновлюємо баланс рахунку користувача
+        wallet.balance -= amount;
+        await wallet.save({ transaction: t });
+  
+        res.status(201).json(record);
       });
-  
-      res.status(201).json(record);
     } catch (error) {
       console.error('Error creating record:', error);
       res.status(500).json({ error: 'Internal Server Error' });
@@ -173,6 +223,46 @@ router.delete('/record/:rec_id', (req,res) => {
 
     res.status(200).json(delR);
 });
+
+router.post('/wallet', async (req, res) => {
+    const { userId } = req.body;
+  
+    const validationResult = walletSchema.validate({ userId });
+  
+      if (validationResult.error) {
+        return res.status(400).json({ error: validationResult.error.details[0].message });
+      }
+
+    try {
+      // Перевірка, чи користувач існує
+      const user = await User.findByPk(userId);
+  
+      if (!user) {
+        return res.status(400).json({ error: 'User not found' });
+      }
+  
+      // Перевірка, чи користувач вже має рахунок
+      const existingWallet = await Wallet.findOne({
+        where: { userId },
+      });
+  
+      if (existingWallet) {
+        return res.status(400).json({ error: 'Wallet already exists for this user' });
+      }
+  
+      // Створення балансу користувача за замовчуванням
+      const wallet = await Wallet.create({
+        userId,
+        balance: 0,
+      });
+  
+      res.status(201).json(wallet);
+    } catch (error) {
+      console.error('Error creating wallet:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+
 
 
 router.get('/healthcheck', (req, res) => {
